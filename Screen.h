@@ -11,6 +11,7 @@ public:
 private:
 	const char* screen[MAX_Y];
 	bool itemTaken[MAX_Y][MAX_X] = { false };
+	bool obstaclePresent[MAX_Y][MAX_X] = { false };
 
 	char getCharAt(const Point& p) const {
 		return screen[p.getY()][p.getX()];
@@ -22,14 +23,22 @@ public:
 	void draw() const;
 
 	bool isWall(const Point& p) const { return getCharAt(p) == '#'; }
+
+	// door
+	char getDoorNum(const Point& p) const { return getCharAt(p); }
 	bool isDoor(const Point& p) const {
 		char c = getCharAt(p);
 		return (c >= '1' && c <= '9');
 	}
-	char getDoorNum(const Point& p) const { return getCharAt(p); }
 
+	//inventory
 	bool isItem(const Point& p) const;
 	char getItemChar(const Point& p) const;
 	void clearPoint(const Point& p);
+
+	// obstacle
+	bool isObstacle(const Point& p) const;
+	bool canPushObstacle(const Point& obstaclePos, const Direction dir) const;
+	void pushObstacle(Point& obstaclePos, const Direction dir);
 };
 

@@ -1,10 +1,11 @@
 #include "Player.h"
 
 Player::Player(const Point& point, const char(&the_keys)[NUM_KEYS + 1], Screen& theScreen)
-	: screen(theScreen),
+	: body(point),
+	screen(theScreen),
 	prevPos(point)
 {
-	auto p = point;
+
 	memcpy(keys, the_keys, NUM_KEYS * sizeof(keys[0]));
 }
 
@@ -26,6 +27,15 @@ void Player::move() {
 	if (screen.isWall(body))
 		{
 		body = orig;
+	}
+	else if (screen.isObstacle(body)) {
+		Direction dir = body.getDirection();
+		Point obstaclePos = body;
+		if (screen.canPushObstacle(obstaclePos, dir)) {
+			screen.pushObstacle(obstaclePos, dir);
+		}
+		else body = orig;
+
 	}
 	
 	body.draw();

@@ -6,7 +6,7 @@
 
 class Point {
 	int x = 1, y = 1;
-	int diff_x = 1, diff_y = 0;
+	int diff_x = 0, diff_y = 0;
 	char ch = '*';
 public:
 	Point() {}
@@ -26,6 +26,7 @@ public:
 	}
 	void move();
 	void setDirection(Direction dir);
+	Direction getDirection() const;
 	void stop() {
 		diff_x = 0;
 		diff_y = 0;
