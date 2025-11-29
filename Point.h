@@ -26,6 +26,10 @@ public:
 	}
 	void move();
 	void setDirection(Direction dir);
+	void stop() {
+		diff_x = 0;
+		diff_y = 0;
+	}
 	int getX() const {
 		return x;
 	}

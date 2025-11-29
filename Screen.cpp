@@ -16,7 +16,7 @@ static const char* LEVEL1[Screen::MAX_Y] = {
 	"#####                                                                       ####", // 7
 	"#####               #########                                               ####", // 8
 	"#####               #########                                               ####", // 9
-	"                                                                            1   ", // 10
+	"                                    K                                       1   ", // 10
 	"#############################                                               ####", // 11
 	"#############################                                               ####", // 12
 	"#############################                                          #    ####", // 13
@@ -79,16 +79,60 @@ void Screen::loadLevel(int level) {
 
 	for (int y=0; y<MAX_Y; ++y){
 		screen[y] = numLevel[y];
+		for (int x = 0; x < MAX_X; ++x) {
+			itemTaken[y][x] = false;
+		}
 	}
+}
+bool Screen::isItem(const Point& p) const {
+	int x = p.getX();
+	int y = p.getY();
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return false;
+
+	if (itemTaken[y][x])
+		return false;
+
+	char c = screen[y][x];
+	// add more items in future
+	return (c == 'K');
+}
+
+char Screen::getItemChar(const Point& p) const {
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return ' ';
+
+	return screen[y][x];
+}
+
+void Screen::clearPoint(const Point& p) {
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return;
+
+	itemTaken[y][x] = true; 
 }
 
 
 void Screen::draw() const {
 	cls();
-	gotoxy(0, 0);
-	for (size_t i = 0; i < MAX_Y - 1; ++i) {
-		cout << screen[i] << endl;
+
+	for (int y = 0; y < MAX_Y; ++y) {
+		gotoxy(0, y);
+		for (int x = 0; x < MAX_X; ++x) {
+			char c = screen[y][x];
+			if (itemTaken[y][x] && (c == 'K')) { // later: add other items
+				c = ' ';
+			}
+			cout << c;
+		}
 	}
-	cout << screen[MAX_Y - 1];
 	cout.flush();
 }
+
+

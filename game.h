@@ -17,10 +17,16 @@ private:
     bool running = true;
     int currLevel = 0;
 
-
+    // door
     bool firstPlayerAtDoor = false;
-    void handleDoor(Player& player);
+    void handleDoor(Player& player, int playerNum);
     bool bothAtDoor() const;
+    int lastPlayerAtDoor = -1;
+
+    // inventory
+	void handleInventory(Player& player);
+
+
     void redrawScreen();
     void clearMiddle();
     void loadNextLevel();
