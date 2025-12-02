@@ -57,10 +57,19 @@ void Game::gameLoop() {
         for (auto& s : players) {
             s.move();
         }
+        bool switchToggledThisFrame = false;
+
         for (int i = 0; i < numPlayers; i++) {
             handleDoor(players[i], i);
             handleInventory(players[i]);
+            if (players[i].toggledSwitch) {
+                switchToggledThisFrame = true;
+                players[i].toggledSwitch = false;
+            }
         }
+        if (switchToggledThisFrame) {
+            redrawScreen();
+		}
         if (bothAtDoor()) {
             if (players[0].hasKey() || players[1].hasKey() ) {
                 clearMiddle();
@@ -138,7 +147,7 @@ void Game:: handleInventory(Player& player) {
         clearMiddle();
         gotoxy(MIDDLE_X, MIDDLE_Y);
         cout << "Player picked up key!" << flush;
-        Sleep(500);
+        Sleep(1000);
         clearMiddle();
         redrawScreen();
     }

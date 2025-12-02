@@ -18,7 +18,7 @@ void Player::move() {
 		body.draw();
 		return;
 	}
-	body.draw(' ');
+	screen.drawCell(body);
 
 	prevPos = body;
 	Point orig = body;
@@ -37,7 +37,10 @@ void Player::move() {
 		else body = orig;
 
 	}
-	
+	else if (screen.isSwitch(body) && !screen.isSwitch(prevPos)) {
+		screen.toggleSwitch(body);
+		toggledSwitch = true;
+	}
 	body.draw();
 }
 

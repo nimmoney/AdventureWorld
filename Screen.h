@@ -12,6 +12,9 @@ private:
 	const char* screen[MAX_Y];
 	bool itemTaken[MAX_Y][MAX_X] = { false };
 	bool obstaclePresent[MAX_Y][MAX_X] = { false };
+	bool switchPresent[MAX_Y][MAX_X] = { false };
+	bool switchState[MAX_Y][MAX_X] = { false }; // false(/): off, true(\): on
+
 
 	char getCharAt(const Point& p) const {
 		return screen[p.getY()][p.getX()];
@@ -21,6 +24,7 @@ public:
 	void loadLevel(int level);
 
 	void draw() const;
+	void drawCell(const Point& p) const;
 
 	bool isWall(const Point& p) const { return getCharAt(p) == '#'; }
 
@@ -40,5 +44,11 @@ public:
 	bool isObstacle(const Point& p) const;
 	bool canPushObstacle(const Point& obstaclePos, const Direction dir) const;
 	void pushObstacle(Point& obstaclePos, const Direction dir);
+
+	// switch
+	bool isSwitch(const Point& p) const;
+	void toggleSwitch(const Point& p);
+
+
 };
 

@@ -8,12 +8,11 @@ class Player {
 	static constexpr int NUM_KEYS = 5;
 	Point body;
 	Point prevPos;
+	bool atDoor = false;
 	char keys[NUM_KEYS];
 	Screen& screen;
-
-	bool atDoor = false;
-
 	Inventory items;
+
 
 public:
 	Player(const Point& point, const char(&the_keys)[NUM_KEYS + 1], Screen& theScreen);
@@ -38,4 +37,7 @@ public:
 	bool hasKey() const { return items.getItem() == Inventory::typeItem::KEY; }
 	void giveItem(Inventory::typeItem item) { items.setItem(item); }
 	void dropItem() { items.setItem(Inventory::typeItem::NONE); }
+
+	// switch
+	bool toggledSwitch = false;
 };

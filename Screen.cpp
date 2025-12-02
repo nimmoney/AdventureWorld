@@ -12,7 +12,7 @@ static const char* LEVEL1[Screen::MAX_Y] = {
 	"#####                                                                  #    ####", // 3
 	"#####                           0                                      #    ####", // 4
 	"#####                                                                  #    ####", // 5
-	"#####                                                                  #    ####", // 6
+	"#####                      /                                            #   ####", // 6
 	"#####                                                                       ####", // 7
 	"#####               #########                                               ####", // 8
 	"#####               #########                                               ####", // 9
@@ -61,6 +61,7 @@ static const char* LEVEL2[Screen::MAX_Y] = {
 		"################################################################################"  // 24
 };
 
+
 Screen::Screen(int level) {	loadLevel(level); }
 
 void Screen::loadLevel(int level) {
@@ -82,6 +83,14 @@ void Screen::loadLevel(int level) {
 		for (int x = 0; x < MAX_X; ++x) {
 			itemTaken[y][x] = false;
 			obstaclePresent[y][x] = (screen[y][x] == '0');
+			if (screen[y][x] == '/' || screen[y][x] == '\\') {
+				switchPresent[y][x] = true;
+				switchState[y][x] = (screen[y][x] == '\\');  // ON if '\'
+			}
+			else {
+				switchPresent[y][x] = false;
+				switchState[y][x] = false;
+			}
 		}
 	}
 }
@@ -211,18 +220,73 @@ void Screen::draw() const {
 	for (int y = 0; y < MAX_Y; ++y) {
 		gotoxy(0, y);
 		for (int x = 0; x < MAX_X; ++x) {
-			char c = screen[y][x];
-			if (itemTaken[y][x] && (c == 'K') ) { // later: add other items
+			char base = screen[y][x];
+			char c = base;
+			if (switchPresent[y][x]) {
+				c = (switchState[y][x] ? '\\' : '/');
+			}
+			else if (obstaclePresent[y][x]) { c = '0'; }
+			else if (itemTaken[y][x] && (base == 'K')) { // later: add other items
 				c = ' ';
 			}
-			if (c == '0' && !obstaclePresent[y][x]) {
+			else if (base == '0') {
 				c = ' ';
 			}
-			if (obstaclePresent[y][x]) { c = '0'; }
 			cout << c;
 		}
 	}
 	cout.flush();
+}
+
+void Screen::drawCell(const Point& p) const {
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return;
+
+	char c = screen[y][x];
+
+	// inventory
+	if (itemTaken[y][x] && c == 'K') {
+		c = ' ';
+	}
+	// obstacle
+	if (c == '0' && !obstaclePresent[y][x]) {
+		c = ' ';
+	}
+	if (obstaclePresent[y][x]) {
+		c = '0';
+	}
+
+	// switch
+	if (switchPresent[y][x]) {
+		c = (switchState[y][x] ? '\\' : '/');
+	}
+
+	gotoxy(x, y);
+	cout << c;
+	cout.flush();
+}
+
+bool Screen::isSwitch(const Point& p) const {
+	int x = p.getX();
+	int y = p.getY();
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return false;
+	return switchPresent[y][x];
+}
+
+void Screen::toggleSwitch(const Point& p)
+{
+	int x = p.getX();
+	int y = p.getY();
+
+	if (!switchPresent[y][x])
+		return;
+
+	switchState[y][x] = !switchState[y][x];
+
 }
 
 
