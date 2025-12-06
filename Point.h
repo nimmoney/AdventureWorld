@@ -10,7 +10,7 @@ class Point {
 	char ch = '*';
 public:
 	Point() {}
-	Point(int x1, int y1, int diffx, int diffy, char c) {
+	constexpr Point(int x1, int y1, int diffx, int diffy, char c) {
 		x = x1;
 		y = y1;
 		diff_x = diffx;
@@ -25,17 +25,23 @@ public:
 		std::cout << c;
 	}
 	void move();
+	bool operator==(const Point& other) const {
+		return x == other.x && y == other.y;
+	}
+
 	void setDirection(Direction dir);
 	Direction getDirection() const;
 	void stop() {
 		diff_x = 0;
 		diff_y = 0;
 	}
+
 	int getX() const {
 		return x;
 	}
 	int getY() const {
 		return y;
 	}
+
 };
 

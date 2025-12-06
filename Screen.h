@@ -9,7 +9,7 @@ class Screen {
 public:
 	enum { MAX_X = 80, MAX_Y = 25 };
 private:
-	const char* screen[MAX_Y];
+	char screen[MAX_Y][MAX_X + 1];
 	bool itemTaken[MAX_Y][MAX_X] = { false };
 	bool obstaclePresent[MAX_Y][MAX_X] = { false };
 	bool switchPresent[MAX_Y][MAX_X] = { false };
@@ -39,6 +39,7 @@ public:
 	bool isItem(const Point& p) const;
 	char getItemChar(const Point& p) const;
 	void clearPoint(const Point& p);
+	void placeItemDown(const Point& p, char item);
 
 	// obstacle
 	bool isObstacle(const Point& p) const;
@@ -48,6 +49,10 @@ public:
 	// switch
 	bool isSwitch(const Point& p) const;
 	void toggleSwitch(const Point& p);
+
+	// riddle
+	bool isRiddle(const Point& p) const { return getCharAt(p) == '?'; }
+	void clearRiddle(const Point& p); // sets riddle tile to empty
 
 
 };

@@ -5,7 +5,6 @@ public:
 	enum class typeItem {
 		NONE,
 		KEY,
-		RIDDLE,
 		BOMB,
 	};
 private:

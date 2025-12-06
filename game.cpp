@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "utils.h"
+#include "Riddle.h"
 #include <conio.h>
 #include <windows.h>
 
@@ -10,11 +11,12 @@ enum { MAX_LEVEL = 2 };
 enum { MAX_X = 80, MAX_Y = 25 };
 enum { numPlayers = 2 };
 
+
 Game::Game()
     : screen(1),
     players{
-        Player(Point(10, 10, 0, 0, '$'), "wdxas", screen),
-        Player(Point(15, 5, 0, 0, '&'), "ilmjk", screen)
+        Player(Point(10, 10, 0, 0, '$'), "wdxas", 'e', screen),
+        Player(Point(15, 5, 0, 0, '&'), "ilmjk", 'o', screen)
     }
 {
     currLevel = 1;
@@ -46,6 +48,7 @@ void Game::gameLoop() {
     resetGame();
     hideCursor();
     screen.draw();
+    handleRiddles(currLevel);
 
     for (auto& s : players) {
         s.draw();
@@ -62,6 +65,8 @@ void Game::gameLoop() {
         for (int i = 0; i < numPlayers; i++) {
             handleDoor(players[i], i);
             handleInventory(players[i]);
+			handleRiddles(players[i]);
+            
             if (players[i].toggledSwitch) {
                 switchToggledThisFrame = true;
                 players[i].toggledSwitch = false;
@@ -71,7 +76,7 @@ void Game::gameLoop() {
             redrawScreen();
 		}
         if (bothAtDoor()) {
-            if (players[0].hasKey() || players[1].hasKey() ) {
+            if ((players[0].hasKey() || players[1].hasKey() ) && (riddlesSolved == numRiddlesInLevel) ){
                 clearMiddle();
                 gotoxy(MIDDLE_X, MIDDLE_Y);
                 cout << "Both players at doors! Level " << currLevel << " complete!" << flush;
@@ -86,12 +91,21 @@ void Game::gameLoop() {
                     players[lastPlayerAtDoor].setAtDoor(false);
                     players[lastPlayerAtDoor].stop();
                 }
-                clearMiddle();
-                gotoxy(MIDDLE_X, MIDDLE_Y);
-                cout << "Both players at doors but no key!" << flush;
-                Sleep(700);
-                clearMiddle();
-                redrawScreen();
+                if (!players[0].hasKey() && !players[1].hasKey()) {
+                    clearMiddle();
+                    gotoxy(MIDDLE_X, MIDDLE_Y);
+                    cout << "Both players at doors but no key!" << flush;
+                    Sleep(700);
+                    clearMiddle();
+                    redrawScreen();
+                }
+				if (riddlesSolved < numRiddlesInLevel) {
+                    gotoxy(MIDDLE_X, MIDDLE_Y);
+                    cout << "Solve all riddles to proceed!" << flush;
+                    Sleep(700);
+                    clearMiddle();
+                    redrawScreen();
+                }
             
             }
         }
@@ -99,11 +113,12 @@ void Game::gameLoop() {
         if (_kbhit()) {
             char key = _getch();
             if (key == Keys::ESC) pauseGame();
-            else
-                for (auto& s : players) s.handleKeyPressed(key);
+            else {
+                for (auto& s : players) s.handleKeyPressed(key); // movement keys & dropItem key
+            }
         }
 
-        Sleep(50);
+        Sleep(40);
     }
 
     cls();
@@ -136,6 +151,13 @@ void Game::handleDoor(Player& player, int playerNum) {
 void Game:: handleInventory(Player& player) {
     const Point& pos = player.getPos();
 
+    if (player.itemDroppedHere) {
+		if (!(player.getPos() == player.getPrevPos())) { // player moved
+            player.itemDroppedHere = false;
+        }
+        return;
+
+    }
     if (player.hasItem()) { return; }
 
     if (screen.isItem(pos))
@@ -152,6 +174,87 @@ void Game:: handleInventory(Player& player) {
         redrawScreen();
     }
 }
+
+void Game::handleRiddles(Player& player)
+{
+    if (numRiddlesInLevel == 0 || nextRiddleIndex >= numRiddlesInLevel) // no riddles to ask
+        return;
+
+    if (!screen.isRiddle(player.getPos()))
+		return;
+
+    askRiddle(player);
+
+
+}
+
+void Game::handleRiddles(int level)
+{
+    switch (level) {
+    case 1:
+        levelRiddles = RIDDLES_LEVEL1;
+        numRiddlesInLevel = NUM_RIDDLES_LEVEL1;
+        break;
+
+    case 2:
+        levelRiddles = RIDDLES_LEVEL2;
+        numRiddlesInLevel = NUM_RIDDLES_LEVEL2;
+        break;
+
+    default:
+        levelRiddles = nullptr;
+        numRiddlesInLevel = 0;
+        break;
+    }
+
+    nextRiddleIndex = 0;
+    riddlesSolved = 0;
+}
+
+void Game::askRiddle(Player& player)
+{
+    const Riddle& r = levelRiddles[nextRiddleIndex];
+
+    clearMiddle();
+    gotoxy(15, 8);
+    cout << r.getQuestion();
+
+    for (int i = 0; i < 4; i++) {
+        gotoxy(15, 10 + i);
+        cout << (i + 1) << ") " << r.getAnswer(i);
+    }
+
+    cout.flush();
+
+    char ans = 0;
+    while (ans < '1' || ans > '4')
+        ans = _getch();
+
+    clearMiddle();
+    gotoxy(15, 15);
+
+    if ((ans - '1') == r.getCorrectAnswer()) {
+        cout << "Correct!";
+        Sleep(500);
+        riddlesSolved++;
+		screen.clearRiddle(player.getPos());
+		nextRiddleIndex++;
+        redrawScreen();
+    }
+    else {
+        cout << "Wrong Answer! Try Again";
+        Sleep(800);
+
+        player.sendToStart();
+        clearMiddle();
+        redrawScreen();
+        return;
+    }
+
+    Sleep(900);
+}
+
+
 bool Game::bothAtDoor() const {
     for (const auto& player : players) {
         if (!player.isAtDoor())
@@ -210,9 +313,12 @@ void Game::loadNextLevel() {
 
     currLevel++;
 	screen.loadLevel(currLevel);
+    handleRiddles(currLevel);
+
 	firstPlayerAtDoor = false;  
 
     for (auto& player : players) {
+        players->dropItem();
         player.setAtDoor(false);
     }
     players[0].setPos(Point(10, 10, 0, 0, '$'));

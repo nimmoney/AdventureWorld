@@ -2,6 +2,7 @@
 
 #include "Screen.h"
 #include "Player.h"
+#include "Riddle.h"
 
 class Game {
 public:
@@ -26,6 +27,15 @@ private:
     // inventory
 	void handleInventory(Player& player);
 
+    // riddles
+    const Riddle* levelRiddles = nullptr; // pointer to array of riddles for this level
+    int numRiddlesInLevel = 0;
+    int nextRiddleIndex = 0; // which riddle should be asked next
+    int riddlesSolved = 0;
+    void handleRiddles(Player& player);
+    void handleRiddles(int level);
+	void askRiddle(Player& player);
+
 
     void redrawScreen();
     void clearMiddle();
@@ -35,4 +45,5 @@ private:
     char mainMenu();
 	void showInstructions();
     void pauseGame();
+
 };

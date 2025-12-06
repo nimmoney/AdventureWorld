@@ -9,7 +9,7 @@ static const char* LEVEL1[Screen::MAX_Y] = {
 	"################################################################################", // 0
 	"#############################                                          #    ####", // 1
 	"#####               #########                                          #    ####", // 2
-	"#####                                                                  #    ####", // 3
+	"#####  ?                                                                #   ####", // 3
 	"#####                           0                                      #    ####", // 4
 	"#####                                                                  #    ####", // 5
 	"#####                      /                                            #   ####", // 6
@@ -78,20 +78,17 @@ void Screen::loadLevel(int level) {
 			break;
 	}
 
-	for (int y = 0; y < MAX_Y; ++y){
-		screen[y] = numLevel[y];
-		for (int x = 0; x < MAX_X; ++x) {
+	for (int y = 0; y < MAX_Y; y++) {
+		for (int x = 0; x < MAX_X; x++) {
+			screen[y][x] = numLevel[y][x];
+
+			// reset item & obstacle state
 			itemTaken[y][x] = false;
-			obstaclePresent[y][x] = (screen[y][x] == '0');
-			if (screen[y][x] == '/' || screen[y][x] == '\\') {
-				switchPresent[y][x] = true;
-				switchState[y][x] = (screen[y][x] == '\\');  // ON if '\'
-			}
-			else {
-				switchPresent[y][x] = false;
-				switchState[y][x] = false;
-			}
+			obstaclePresent[y][x] = (numLevel[y][x] == '0');
+			switchPresent[y][x] = (numLevel[y][x] == '/' || numLevel[y][x] == '\\');
+			switchState[y][x] = (numLevel[y][x] == '\\');  // on if backslash
 		}
+		screen[y][MAX_X] = '\0'; // end row string
 	}
 }
 bool Screen::isItem(const Point& p) const {
@@ -127,6 +124,26 @@ void Screen::clearPoint(const Point& p) {
 
 	itemTaken[y][x] = true; 
 }
+
+void Screen::placeItemDown(const Point& p, char item)
+{
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return;
+
+	screen[y][x] = item; // place item on map
+	itemTaken[y][x] = false; // mark tile as having item
+
+	//redraw
+	gotoxy(x, y);
+	cout << item;
+	cout.flush();
+}
+
+
+
 
 bool Screen::isObstacle(const Point& p) const
 {
@@ -217,21 +234,18 @@ void Screen::pushObstacle(Point& obstaclePos, const Direction dir)
 void Screen::draw() const {
 	cls();
 
-	for (int y = 0; y < MAX_Y; ++y) {
+	for (int y = 0; y < MAX_Y; y++) {
 		gotoxy(0, y);
-		for (int x = 0; x < MAX_X; ++x) {
-			char base = screen[y][x];
-			char c = base;
-			if (switchPresent[y][x]) {
+		for (int x = 0; x < MAX_X; x++) {
+			char c = screen[y][x];
+			if (itemTaken[y][x] && c == 'K')
+				c = ' ';
+			if (obstaclePresent[y][x])
+				c = '0';
+			else if (c == '0')
+				c = ' '; // remove ones not present
+			if (switchPresent[y][x])
 				c = (switchState[y][x] ? '\\' : '/');
-			}
-			else if (obstaclePresent[y][x]) { c = '0'; }
-			else if (itemTaken[y][x] && (base == 'K')) { // later: add other items
-				c = ' ';
-			}
-			else if (base == '0') {
-				c = ' ';
-			}
 			cout << c;
 		}
 	}
@@ -286,6 +300,18 @@ void Screen::toggleSwitch(const Point& p)
 		return;
 
 	switchState[y][x] = !switchState[y][x];
+
+}
+
+void Screen::clearRiddle(const Point& p)
+{
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return;
+
+	screen[y][x] = ' ';
 
 }
 

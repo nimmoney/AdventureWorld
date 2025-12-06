@@ -1,12 +1,14 @@
 #include "Player.h"
+#include "Inventory.h"
 
-Player::Player(const Point& point, const char(&the_keys)[NUM_KEYS + 1], Screen& theScreen)
+Player::Player(const Point& point, const char(&move_keys)[NUM_KEYS + 1], char dropItemKey, Screen& theScreen)
 	: body(point),
-	screen(theScreen),
-	prevPos(point)
+	  screen(theScreen),
+	  prevPos(point),
+	  dropItemKey(dropItemKey),
+	  startPos(point)
 {
-
-	memcpy(keys, the_keys, NUM_KEYS * sizeof(keys[0]));
+	memcpy(moveKeys, move_keys, NUM_KEYS * sizeof(moveKeys[0]));
 }
 
 void Player::draw() {
@@ -14,6 +16,12 @@ void Player::draw() {
 }
 
 void Player::move() {
+	if (moveDelay > 0) {
+		moveDelay--;
+		return;
+	}
+	moveDelay = MOVE_RATE; // reset delay
+
 	if (atDoor) {
 		body.draw();
 		return;
@@ -45,12 +53,41 @@ void Player::move() {
 }
 
 void Player::handleKeyPressed(char key_pressed) {
-	size_t index = 0;
-	for (char k : keys) {
-		if (std::tolower(k) == std::tolower(key_pressed)) {
-			body.setDirection((Direction)index);
+	key_pressed = std::tolower(key_pressed);
+
+	// movement keys
+	for (size_t i = 0; i < NUM_KEYS; ++i) {
+		if (std::tolower(moveKeys[i]) == key_pressed) {
+			body.setDirection((Direction)i);
 			return;
 		}
-		++index;
 	}
+
+	// item key
+	if (key_pressed == std::tolower(dropItemKey)) {
+		dropItem(screen);
+		return;
+	}
+}
+
+bool Player::dropItem(Screen& screen)
+{
+	if (items.isEmpty())
+		return false;
+
+	char itemChar = ' ';
+
+	switch (items.getItem()) {
+		case Inventory::typeItem::KEY: itemChar = 'K';
+		break;
+		default: return false;
+		
+	}
+
+	screen.placeItemDown(body, itemChar);
+	dropItem(); // calls void drop
+
+	itemDroppedHere = true;
+	
+	return true;
 }

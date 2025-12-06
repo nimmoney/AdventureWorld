@@ -4,18 +4,26 @@
 #include "Screen.h"
 #include "inventory.h"
 
+constexpr int MOVE_RATE = 1; // higher is slower
+
 class Player {
 	static constexpr int NUM_KEYS = 5;
+	char moveKeys[NUM_KEYS];
+	char dropItemKey; // E, O for each player
+	Screen& screen;
+	int moveDelay = 0;  // counts down every "frame" (gameloop sleep) to control move rate
+	
 	Point body;
 	Point prevPos;
+	Point startPos;
+
 	bool atDoor = false;
-	char keys[NUM_KEYS];
-	Screen& screen;
 	Inventory items;
+	
 
 
 public:
-	Player(const Point& point, const char(&the_keys)[NUM_KEYS + 1], Screen& theScreen);
+	Player(const Point& startPoint, const char(&move_keys)[NUM_KEYS + 1], char dropItemKey, Screen& theScreen);
 
 	void draw();
 	void move();
@@ -27,6 +35,7 @@ public:
 	void setPos(const Point& p) { body = p;}
 	const Point& getPrevPos() const { return prevPos; }
 	void stop() { body.stop(); }
+	void sendToStart() { body = startPos; }
 
 	//door
 	bool isAtDoor() const { return atDoor; }
@@ -37,6 +46,8 @@ public:
 	bool hasKey() const { return items.getItem() == Inventory::typeItem::KEY; }
 	void giveItem(Inventory::typeItem item) { items.setItem(item); }
 	void dropItem() { items.setItem(Inventory::typeItem::NONE); }
+	bool dropItem(Screen& screen);
+	bool itemDroppedHere = false;
 
 	// switch
 	bool toggledSwitch = false;
