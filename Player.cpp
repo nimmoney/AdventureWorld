@@ -1,5 +1,5 @@
 #include "Player.h"
-#include "Inventory.h"
+#include "GameUtils.h"
 
 Player::Player(const Point& point, const char(&move_keys)[NUM_KEYS + 1], char dropItemKey, Screen& theScreen)
 	: body(point),
@@ -33,7 +33,7 @@ void Player::move() {
 	body.move();
 
 	if (screen.isWall(body))
-		{
+	{
 		body = orig;
 	}
 	else if (screen.isObstacle(body)) {
@@ -52,7 +52,7 @@ void Player::move() {
 	body.draw();
 }
 
-void Player::handleKeyPressed(char key_pressed) {
+void Player::handleKeyPressed(char key_pressed) { 
 	key_pressed = std::tolower(key_pressed);
 
 	// movement keys
@@ -60,7 +60,7 @@ void Player::handleKeyPressed(char key_pressed) {
 		if (std::tolower(moveKeys[i]) == key_pressed) {
 			body.setDirection((Direction)i);
 			return;
-		}
+		} 
 	}
 
 	// item key

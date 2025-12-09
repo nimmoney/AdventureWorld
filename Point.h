@@ -1,8 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include "utils.h"
-#include "Direction.h"
+#include "GameUtils.h"
 
 class Point {
 	int x = 1, y = 1;

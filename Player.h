@@ -1,13 +1,11 @@
 #pragma once
-
 #include "Point.h"
+#include "GameUtils.h"
 #include "Screen.h"
-#include "inventory.h"
+#include "Inventory.h"
 
-constexpr int MOVE_RATE = 1; // higher is slower
 
 class Player {
-	static constexpr int NUM_KEYS = 5;
 	char moveKeys[NUM_KEYS];
 	char dropItemKey; // E, O for each player
 	Screen& screen;

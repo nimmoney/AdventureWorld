@@ -1,8 +1,11 @@
 #pragma once
-
+#include <conio.h>
+#include <windows.h>
 #include "Screen.h"
 #include "Player.h"
 #include "Riddle.h"
+#include "GameUtils.h"
+
 
 class Game {
 public:
@@ -36,6 +39,12 @@ private:
     void handleRiddles(int level);
 	void askRiddle(Player& player);
 
+    // gameLoop helpers
+    void updatePlayers();
+    void updateTiles(); // handle inventory, riddle, doors
+	void processInput();
+    void checkLevelComplete();
+
 
     void redrawScreen();
     void clearMiddle();
@@ -45,5 +54,5 @@ private:
     char mainMenu();
 	void showInstructions();
     void pauseGame();
-
+    void printMessage(const char* txt, int delay = 1000);
 };

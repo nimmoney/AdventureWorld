@@ -1,4 +1,5 @@
 #pragma once
+
 class Inventory
 {
 public: 
@@ -14,7 +15,6 @@ public:
 	bool isEmpty() const { return slot == typeItem::NONE; }
 	void setItem(typeItem item) { slot = item; }
 	bool canUseItem(typeItem item) const { return slot == item;}
-
 
 };
 

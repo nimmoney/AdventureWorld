@@ -1,22 +1,17 @@
 #include "Game.h"
-#include "utils.h"
-#include "Riddle.h"
-#include <conio.h>
-#include <windows.h>
+#include "GameUtils.h"
 
 using std::flush;
-enum Keys { ESC = 27 };
-enum { MIDDLE_X = 30, MIDDLE_Y = 13 };
-enum { MAX_LEVEL = 2 };
-enum { MAX_X = 80, MAX_Y = 25 };
-enum { numPlayers = 2 };
+
+constexpr Point startPosP1(3, 1, 0, 0, '$');
+constexpr Point startPosP2(3, 2, 0, 0, '&');
 
 
 Game::Game()
     : screen(1),
     players{
-        Player(Point(10, 10, 0, 0, '$'), "wdxas", 'e', screen),
-        Player(Point(15, 5, 0, 0, '&'), "ilmjk", 'o', screen)
+        Player(startPosP1, "wdxas", 'e', screen),
+        Player(startPosP2, "ilmjk", 'o', screen)
     }
 {
     currLevel = 1;
@@ -41,7 +36,7 @@ void Game::run() {
         default:
             break;
         }
-	}
+    }
 }
 
 void Game::gameLoop() {
@@ -57,66 +52,10 @@ void Game::gameLoop() {
     running = true;
 
     while (running) {
-        for (auto& s : players) {
-            s.move();
-        }
-        bool switchToggledThisFrame = false;
-
-        for (int i = 0; i < numPlayers; i++) {
-            handleDoor(players[i], i);
-            handleInventory(players[i]);
-			handleRiddles(players[i]);
-            
-            if (players[i].toggledSwitch) {
-                switchToggledThisFrame = true;
-                players[i].toggledSwitch = false;
-            }
-        }
-        if (switchToggledThisFrame) {
-            redrawScreen();
-		}
-        if (bothAtDoor()) {
-            if ((players[0].hasKey() || players[1].hasKey() ) && (riddlesSolved == numRiddlesInLevel) ){
-                clearMiddle();
-                gotoxy(MIDDLE_X, MIDDLE_Y);
-                cout << "Both players at doors! Level " << currLevel << " complete!" << flush;
-                Sleep(1000);
-                clearMiddle();
-                redrawScreen();
-                loadNextLevel();
-            }
-            else {
-                if (lastPlayerAtDoor != -1) {
-                    players[lastPlayerAtDoor].setPos(players[lastPlayerAtDoor].getPrevPos());
-                    players[lastPlayerAtDoor].setAtDoor(false);
-                    players[lastPlayerAtDoor].stop();
-                }
-                if (!players[0].hasKey() && !players[1].hasKey()) {
-                    clearMiddle();
-                    gotoxy(MIDDLE_X, MIDDLE_Y);
-                    cout << "Both players at doors but no key!" << flush;
-                    Sleep(700);
-                    clearMiddle();
-                    redrawScreen();
-                }
-				if (riddlesSolved < numRiddlesInLevel) {
-                    gotoxy(MIDDLE_X, MIDDLE_Y);
-                    cout << "Solve all riddles to proceed!" << flush;
-                    Sleep(700);
-                    clearMiddle();
-                    redrawScreen();
-                }
-            
-            }
-        }
-
-        if (_kbhit()) {
-            char key = _getch();
-            if (key == Keys::ESC) pauseGame();
-            else {
-                for (auto& s : players) s.handleKeyPressed(key); // movement keys & dropItem key
-            }
-        }
+        processInput();
+        updatePlayers();
+        updateTiles(); // inventory, riddles, doors
+        checkLevelComplete(); // both players at door? keys & riddles complete?
 
         Sleep(40);
     }
@@ -128,7 +67,7 @@ void Game::handleDoor(Player& player, int playerNum) {
 
     if (player.isAtDoor()) {
         return;
-	}
+    }
 
     const Point& pos = player.getPos();
 
@@ -138,21 +77,17 @@ void Game::handleDoor(Player& player, int playerNum) {
         lastPlayerAtDoor = playerNum;
         if (!firstPlayerAtDoor) {
             firstPlayerAtDoor = true;
-            clearMiddle(); 
-            gotoxy(MIDDLE_X, MIDDLE_Y);
-            cout << "Player stepped on door " << id << "!" << flush;
-            Sleep(1000);
-            clearMiddle();
+            printMessage("Player arrived at door!");
             redrawScreen();
         }
     }
 }
 
-void Game:: handleInventory(Player& player) {
+void Game::handleInventory(Player& player) {
     const Point& pos = player.getPos();
 
     if (player.itemDroppedHere) {
-		if (!(player.getPos() == player.getPrevPos())) { // player moved
+        if (!(player.getPos() == player.getPrevPos())) { // player moved
             player.itemDroppedHere = false;
         }
         return;
@@ -165,27 +100,21 @@ void Game:: handleInventory(Player& player) {
         char c = screen.getItemChar(pos);
         if (c == 'K')
             player.giveItem(Inventory::typeItem::KEY);
-		screen.clearPoint(pos);
-        clearMiddle();
-        gotoxy(MIDDLE_X, MIDDLE_Y);
-        cout << "Player picked up key!" << flush;
-        Sleep(1000);
-        clearMiddle();
+        screen.clearPoint(pos);
+        printMessage("Player picked up Key!", 1000);
         redrawScreen();
     }
 }
 
 void Game::handleRiddles(Player& player)
 {
-    if (numRiddlesInLevel == 0 || nextRiddleIndex >= numRiddlesInLevel) // no riddles to ask
+    if (numRiddlesInLevel == 0 || nextRiddleIndex >= numRiddlesInLevel)
         return;
 
     if (!screen.isRiddle(player.getPos()))
-		return;
+        return;
 
     askRiddle(player);
-
-
 }
 
 void Game::handleRiddles(int level)
@@ -237,8 +166,8 @@ void Game::askRiddle(Player& player)
         cout << "Correct!";
         Sleep(500);
         riddlesSolved++;
-		screen.clearRiddle(player.getPos());
-		nextRiddleIndex++;
+        screen.clearRiddle(player.getPos());
+        nextRiddleIndex++;
         redrawScreen();
     }
     else {
@@ -263,15 +192,84 @@ bool Game::bothAtDoor() const {
     return true;
 }
 
-void Game::redrawScreen() {
-    screen.draw();
+void Game::updatePlayers()
+{
     for (auto& s : players) {
-        s.draw();
+        s.move();
     }
 }
 
+void Game::updateTiles()
+{
+    bool switchToggledThisFrame = false;
+
+    for (int i = 0; i < NUM_PLAYERS; i++) {
+        handleDoor(players[i], i);
+        handleInventory(players[i]);
+        handleRiddles(players[i]);
+
+        if (players[i].toggledSwitch) {
+            switchToggledThisFrame = true;
+            players[i].toggledSwitch = false;
+        }
+    }
+    if (switchToggledThisFrame) {
+        redrawScreen();
+    }
+}
+
+void Game::processInput()
+{
+    if (!_kbhit())
+        return;
+
+    char key = _getch();
+    if (key == Keys::ESC) {
+        pauseGame();
+        return;
+    }
+
+    for (auto& s : players)
+        s.handleKeyPressed(key);
+}
+
+void Game::checkLevelComplete()
+{
+    if (!bothAtDoor())
+        return;
+
+    if ((players[0].hasKey() || players[1].hasKey()) && (riddlesSolved == numRiddlesInLevel)) {
+        printMessage("Both players at door! Level Complete");
+        redrawScreen();
+        loadNextLevel();
+    }
+    else {
+        if (lastPlayerAtDoor != -1) {
+            players[lastPlayerAtDoor].setPos(players[lastPlayerAtDoor].getPrevPos());
+            players[lastPlayerAtDoor].setAtDoor(false);
+            players[lastPlayerAtDoor].stop();
+        }
+
+        if (!players[0].hasKey() && !players[1].hasKey()) {
+            printMessage("Both players at door but no key!");
+            redrawScreen();
+        }
+
+        if (riddlesSolved < numRiddlesInLevel) {
+            printMessage("Solve all riddles to proceed!");
+            redrawScreen();
+        }
+    }
+}
+
+void Game::redrawScreen() {
+    screen.draw();
+    for (auto& s : players)
+        s.draw();
+}
+
 void Game::clearMiddle() {
-    gotoxy(0, MIDDLE_Y);
+    gotoxy(0, MID_Y);
     for (int i = 0; i < MAX_X; ++i) cout << ' ';
     cout.flush();
 }
@@ -285,53 +283,53 @@ char Game::mainMenu() {
     cout << "   (1) Start A New Game" << endl;
     cout << "   (8) Present Instructions and Keys" << endl;
     cout << "   (9) EXIT" << endl;
-	cout << " Select an option: " << flush;
+    cout << " Select an option: " << flush;
     return _getch();
-
 }
 
 void Game::showInstructions() {
     cls();
     gotoxy(0, 0);
     cout << "================= INSTRUCTIONS =================" << endl;
-    cout << " Player 1 ($): W (up), A (left), S (down), D (right), X (stay)" << endl;
-    cout << " Player 2 (&): I (up), J (left), K (down), L (right), M (stay)" << endl;
-    cout << " Both players must reach their respective doors to complete the level." << endl;
-    cout << " Press any key to return to the menu..." << flush;
-    (void)_getch(); // void to ignore return val
+    cout << " Player 1 ($): W (up), A (left), S (down), D (right), X (stay), E (drop item)" << endl;
+    cout << " Player 2 (&): I (up), J (left), K (down), L (right), M (stay), O (drop item)" << endl;
+    cout << endl << " Both players must reach the door(1-9) to proceed to the next level." << endl;
+    cout << " You will advance only if you have answered the riddles(?)" << endl;
+    cout << " and collected the door key(K)." << endl;
+    cout << " Tip: Try flipping switches to open hidden doors." << endl;
+    cout << endl << " Press any key to return to the menu..." << flush;
+    (void)_getch();
 }
-
 
 void Game::loadNextLevel() {
     if (currLevel >= MAX_LEVEL) {
-        clearMiddle();
-        gotoxy(MIDDLE_X, MIDDLE_Y);
-        cout << "=======THE END======" << flush;
-		returnToMenu();
-		return;
+        printMessage("========THE END======", 2000);
+        cout << flush;
+        returnToMenu();
+        return;
     }
 
     currLevel++;
-	screen.loadLevel(currLevel);
+    screen.loadLevel(currLevel);
     handleRiddles(currLevel);
 
-	firstPlayerAtDoor = false;  
+    firstPlayerAtDoor = false;
 
     for (auto& player : players) {
         players->dropItem();
         player.setAtDoor(false);
     }
-    players[0].setPos(Point(10, 10, 0, 0, '$'));
-    players[1].setPos(Point(15, 5, 0, 0, '&'));
+
+    players[0].setPos(startPosP1);
+    players[1].setPos(startPosP2);
 
     screen.draw();
-    for (auto& s : players) {
-		s.draw();
-	}
+    for (auto& s : players)
+        s.draw();
 }
 
 void Game::returnToMenu() {
-	Sleep(500);
+    Sleep(500);
     running = false;
     cls();
 }
@@ -340,23 +338,25 @@ void Game::resetGame() {
     currLevel = 1;
     firstPlayerAtDoor = false;
     screen.loadLevel(currLevel);
+
     for (auto& player : players) {
         player.setAtDoor(false);
         player.dropItem();
     }
-    players[0].setPos(Point(10, 10, 0, 0, '$'));
-    players[1].setPos(Point(15, 5, 0, 0, '&'));
+
+    players[0].setPos(startPosP1);
+    players[1].setPos(startPosP2);
 }
 
 void Game::pauseGame() {
 
-    gotoxy(0, MIDDLE_Y);
+    gotoxy(0, MID_Y);
     for (int i = 0; i < MAX_X; ++i) cout << ' ';
 
-    gotoxy(MIDDLE_X, MIDDLE_Y);
+    gotoxy(MID_X, MID_Y);
     cout << "[ GAME PAUSED ]" << flush;
 
-    gotoxy(MIDDLE_X - 10, MIDDLE_Y + 1);
+    gotoxy(MID_X - 10, MID_Y + 1);
     cout << "Press ESC to continue or H to return to menu" << flush;
 
     while (true) {
@@ -376,3 +376,41 @@ void Game::pauseGame() {
     }
 }
 
+void Game::printMessage(const char* text, int delay)
+{
+    int boxWidth = strlen(text) + 6;
+    int boxHeight = 5;
+
+    int startX = (MAX_X - boxWidth) / 2;
+    int startY = (MAX_Y - boxHeight) / 2;
+
+    gotoxy(startX, startY);
+    cout << '+';
+    for (auto i = 0; i < (boxWidth - 2); ++i) cout << '=';
+    cout << '+';
+
+    gotoxy(startX, startY + 1);
+    cout << '|';
+    for (auto i = 0; i < (boxWidth - 2); ++i) cout << ' ';
+    cout << '|';
+
+    gotoxy(startX, startY + 2);
+    cout << "|  " << text << "  |";
+
+    gotoxy(startX, startY + 4);
+    cout << '+';
+    for (auto i = 0; i < (boxWidth - 2); ++i) cout << '=';
+    cout << '+';
+
+    cout.flush();
+    Sleep(delay);
+
+    // clear box
+
+    for (auto y = 0; y < boxHeight; ++y) {
+        gotoxy(startX, startY + y);
+        for (auto i = 0; i < boxWidth; ++i)
+            cout << ' ';
+    }
+    cout.flush();
+}

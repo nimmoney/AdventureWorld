@@ -1,20 +1,22 @@
 #pragma once
-
 #include <iostream>
 #include "Point.h"
+#include "GameUtils.h"
 
 using std::cout, std::endl;
-
+	
 class Screen {
-public:
-	enum { MAX_X = 80, MAX_Y = 25 };
 private:
 	char screen[MAX_Y][MAX_X + 1];
 	bool itemTaken[MAX_Y][MAX_X] = { false };
 	bool obstaclePresent[MAX_Y][MAX_X] = { false };
+
+	struct switchEffect {
+		Point switchPos;
+		Point wallPos; // wall that is affected by this switch
+	};
 	bool switchPresent[MAX_Y][MAX_X] = { false };
 	bool switchState[MAX_Y][MAX_X] = { false }; // false(/): off, true(\): on
-
 
 	char getCharAt(const Point& p) const {
 		return screen[p.getY()][p.getX()];
@@ -47,8 +49,11 @@ public:
 	void pushObstacle(Point& obstaclePos, const Direction dir);
 
 	// switch
+	switchEffect switches[10];
+	int numSwitches = 0;
 	bool isSwitch(const Point& p) const;
 	void toggleSwitch(const Point& p);
+	void updateWallForSwitch(Point switchPos, Point wallPos);
 
 	// riddle
 	bool isRiddle(const Point& p) const { return getCharAt(p) == '?'; }
