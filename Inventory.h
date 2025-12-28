@@ -7,6 +7,7 @@ public:
 		NONE,
 		KEY,
 		BOMB,
+		TORCH,
 	};
 private:
 	typeItem slot = typeItem::NONE;

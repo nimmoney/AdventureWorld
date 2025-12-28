@@ -18,14 +18,13 @@ class Player {
 	bool atDoor = false;
 	Inventory items;
 	
-
-
 public:
 	Player(const Point& startPoint, const char(&move_keys)[NUM_KEYS + 1], char dropItemKey, Screen& theScreen);
 
-	void draw();
+	void draw() const;
 	void move();
 	void handleKeyPressed(char key);
+	int getPlayerRadius() const { return hasTorch() ? TORCH_RADIUS : BASE_RADIUS; }
 
 	//position
 	const Point& getPos() const { return body; }
@@ -39,14 +38,16 @@ public:
 	bool isAtDoor() const { return atDoor; }
 	void setAtDoor(bool val) { atDoor = val; }
 
-	//inventory
-	bool hasItem() const { return items.getItem() != Inventory::typeItem::NONE; }
-	bool hasKey() const { return items.getItem() == Inventory::typeItem::KEY; }
+	//				inventory
 	void giveItem(Inventory::typeItem item) { items.setItem(item); }
 	void dropItem() { items.setItem(Inventory::typeItem::NONE); }
 	bool dropItem(Screen& screen);
 	bool itemDroppedHere = false;
-
+	// key
+	bool hasItem() const { return items.getItem() != Inventory::typeItem::NONE; }
+	bool hasKey() const { return items.getItem() == Inventory::typeItem::KEY; }
+	//torch
+	bool hasTorch() const { return items.getItem() == Inventory::typeItem::TORCH; }
 	// switch
 	bool toggledSwitch = false;
 };

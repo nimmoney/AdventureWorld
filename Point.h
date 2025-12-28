@@ -16,10 +16,12 @@ public:
 		diff_y = diffy;
 		ch = c;
 	}
-	void draw() {
+	Point(int x1, int y1) : x(x1), y(y1), diff_x(0), diff_y(0), ch(' ') {}
+
+	void draw() const{
 		draw(ch);
 	}
-	void draw(char c) {
+	void draw(char c) const{
 		gotoxy(x, y);
 		std::cout << c;
 	}

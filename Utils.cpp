@@ -1,8 +1,8 @@
 #include <iostream>
 #include <windows.h>
 #include <cstdlib>
-#include "GameUtils.h"
 
+#include "utils.h"
 
 void gotoxy(int x, int y) {
     std::cout.flush();
@@ -24,3 +24,5 @@ void hideCursor()
 void cls() {
     system("cls");
 }
+
+

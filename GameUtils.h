@@ -29,5 +29,10 @@ void gotoxy(int x, int y);
 void hideCursor();
 void cls();
 
+// visibility
+constexpr int BASE_RADIUS = 4;
+constexpr int TORCH_RADIUS = 8;
+
+
 
 

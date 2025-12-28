@@ -1,9 +1,10 @@
 #include "Screen.h"
+#include "Player.h"
 #include "GameUtils.h"
 
 static const char* LEVEL1[MAX_Y] = {
 	"################################################################################", // 0
-	"#                                                                              #", // 1
+	"#                 !                                                            #", // 1
 	"#                                                                              #", // 2
 	"###############0######################################################00########", // 3
 	"#             #                                                                #", // 4
@@ -106,7 +107,7 @@ bool Screen::isItem(const Point& p) const {
 
 	char c = screen[y][x];
 	// add more items in future
-	return (c == 'K');
+	return (c == 'K' || c == '!');
 }
 
 char Screen::getItemChar(const Point& p) const {
@@ -143,7 +144,6 @@ void Screen::placeItemDown(const Point& p, char item)
 	//redraw
 	gotoxy(x, y);
 	cout << item;
-	cout.flush();
 }
 
 
@@ -217,7 +217,7 @@ void Screen::pushObstacle(Point& obstaclePos, const Direction dir)
 	default:
 		return;
 	}
-	if (newX < 0 || newX >= MAX_X || newY < 0 || newY >= MAX_Y)
+	if (outOfBounds(obstaclePos))
 		return;
 	if (!canPushObstacle(obstaclePos, dir))
 		return;
@@ -231,18 +231,21 @@ void Screen::pushObstacle(Point& obstaclePos, const Direction dir)
 	cout << ' ';
 	gotoxy(newX, newY);
 	cout << '0';
-	cout.flush();
 }
 
 
 void Screen::draw() const {
-	cls();
-
 	for (int y = 0; y < MAX_Y; y++) {
 		gotoxy(0, y);
 		for (int x = 0; x < MAX_X; x++) {
 			char c = screen[y][x];
-			if (itemTaken[y][x] && c == 'K')
+			Point p(x, y);
+			if (isDark(p)) {
+				cout << ' ';
+				continue;
+			}
+
+			if (itemTaken[y][x] && (c == 'K'|| c =='!'))
 				c = ' ';
 			if (obstaclePresent[y][x])
 				c = '0';
@@ -256,17 +259,53 @@ void Screen::draw() const {
 	cout.flush();
 }
 
+void Screen::draw(const Player players[], int numPlayers) const
+{
+	for (int y = 0; y < MAX_Y; y++) {
+		gotoxy(0, y);
+		for (int x = 0; x < MAX_X; x++) {
+			Point p(x, y);
+			bool visible = false;
+
+			for (int i = 0; i < numPlayers; i++) {
+				if (isVisibleToPlayer(p, players[i])) {
+					visible = true;
+					break;
+				}
+			}
+			if (!visible) {
+				cout << ' ';
+				continue;
+			}
+			char c = screen[y][x];
+			if (itemTaken[y][x] && (c == 'K' || c == '!'))
+				c = ' ';
+			if (obstaclePresent[y][x])
+				c = '0';
+			else if (c == '0')
+				c = ' ';
+			if (switchPresent[y][x])
+				c = (switchState[y][x] ? '\\' : '/');
+			cout << c;
+		}
+	}
+	for (int i = 0; i < numPlayers; i++) {
+		players[i].draw();
+	}
+	cout.flush();
+}
+
 void Screen::drawCell(const Point& p) const {
 	int x = p.getX();
 	int y = p.getY();
 
-	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+	if (outOfBounds(p))
 		return;
 
 	char c = screen[y][x];
 
 	// inventory
-	if (itemTaken[y][x] && c == 'K') {
+	if (itemTaken[y][x] && (c == 'K'|| c=='!')) {
 		c = ' ';
 	}
 	// obstacle
@@ -284,14 +323,73 @@ void Screen::drawCell(const Point& p) const {
 
 	gotoxy(x, y);
 	cout << c;
-	cout.flush();
+}
+
+void Screen::drawCell(const Point& p, bool hasTorch) const
+{
+	int x = p.getX();
+	int y = p.getY();
+
+	if (outOfBounds(p))
+		return;
+
+	if (isDark(p) && !hasTorch) {
+		gotoxy(x, y);
+		cout << ' ';
+		return;
+	}
+
+	char c = screen[y][x];
+
+	if (itemTaken[y][x] && (c == 'K' || c == '!')) {
+		c = ' ';
+	}
+
+	if (c == '0' && !obstaclePresent[y][x]) {
+		c = ' ';
+	}
+	if (obstaclePresent[y][x]) {
+		c = '0';
+	}
+
+	if (switchPresent[y][x]) {
+		c = (switchState[y][x] ? '\\' : '/');
+	}
+	gotoxy(x, y);
+	cout << c;
+}
+
+bool Screen::outOfBounds(const Point& p) const
+{
+	int x = p.getX();
+	int y = p.getY();
+
+	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+		return true;
+	else
+		return false;
+
+}
+
+bool Screen::isVisibleToPlayer(const Point& tile, const Player& player) const
+{
+	int dx = abs(tile.getX() - player.getPos().getX());
+	int dy = abs(tile.getY() - player.getPos().getY());
+
+	if (dx + dy > player.getPlayerRadius())
+		return false;
+
+	if (isDark(tile) && !player.hasTorch())
+		return false;
+
+	return true;
 }
 
 
 bool Screen::isSwitch(const Point& p) const {
 	int x = p.getX();
 	int y = p.getY();
-	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+	if (outOfBounds(p))
 		return false;
 	return switchPresent[y][x];
 }
@@ -316,7 +414,6 @@ void Screen::toggleSwitch(const Point& p)
 
 			gotoxy(wallX, wallY);
 			cout << screen[wallY][wallX];
-			cout.flush();
 		}
 	}
 
@@ -333,11 +430,20 @@ void Screen::clearRiddle(const Point& p)
 	int x = p.getX();
 	int y = p.getY();
 
-	if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+	if (outOfBounds(p))
 		return;
 
 	screen[y][x] = ' ';
 
 }
 
-
+bool Screen::isDark(const Point& p) const
+{
+	int x = p.getX();
+	int y = p.getY();
+	
+	if (outOfBounds(p))
+		return false;
+	else
+		return dark[y][x];
+}

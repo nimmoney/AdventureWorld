@@ -11,7 +11,7 @@ Player::Player(const Point& point, const char(&move_keys)[NUM_KEYS + 1], char dr
 	memcpy(moveKeys, move_keys, NUM_KEYS * sizeof(moveKeys[0]));
 }
 
-void Player::draw() {
+void Player::draw() const {
 	body.draw();
 }
 
@@ -26,7 +26,7 @@ void Player::move() {
 		body.draw();
 		return;
 	}
-	screen.drawCell(body);
+	screen.drawCell(body,hasTorch());
 
 	prevPos = body;
 	Point orig = body;
@@ -80,8 +80,9 @@ bool Player::dropItem(Screen& screen)
 	switch (items.getItem()) {
 		case Inventory::typeItem::KEY: itemChar = 'K';
 		break;
+		case Inventory::typeItem::TORCH: itemChar = '!';
+		break;
 		default: return false;
-		
 	}
 
 	screen.placeItemDown(body, itemChar);

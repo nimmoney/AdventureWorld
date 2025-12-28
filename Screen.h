@@ -4,19 +4,23 @@
 #include "GameUtils.h"
 
 using std::cout, std::endl;
-	
+class Player;
 class Screen {
 private:
 	char screen[MAX_Y][MAX_X + 1];
 	bool itemTaken[MAX_Y][MAX_X] = { false };
 	bool obstaclePresent[MAX_Y][MAX_X] = { false };
 
+	//switch
 	struct switchEffect {
 		Point switchPos;
 		Point wallPos; // wall that is affected by this switch
 	};
 	bool switchPresent[MAX_Y][MAX_X] = { false };
 	bool switchState[MAX_Y][MAX_X] = { false }; // false(/): off, true(\): on
+
+	//torch
+	bool dark[MAX_Y][MAX_X] = { false };
 
 	char getCharAt(const Point& p) const {
 		return screen[p.getY()][p.getX()];
@@ -26,8 +30,11 @@ public:
 	void loadLevel(int level);
 
 	void draw() const;
+	void draw(const Player players[], int numPlayers) const;
 	void drawCell(const Point& p) const;
-
+	void drawCell(const Point& p, bool hasTorch) const; // for torch
+	bool outOfBounds(const Point& p) const;
+	bool isVisibleToPlayer(const Point& tile, const Player& player) const;
 	bool isWall(const Point& p) const { return getCharAt(p) == '#'; }
 
 	// door
@@ -59,6 +66,8 @@ public:
 	bool isRiddle(const Point& p) const { return getCharAt(p) == '?'; }
 	void clearRiddle(const Point& p); // sets riddle tile to empty
 
+	// torch
+	bool isDark(const Point& p) const;
 
 };
 
